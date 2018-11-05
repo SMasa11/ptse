@@ -1,0 +1,15 @@
+Package: ptse
+Type: Package
+Title: Post-Treatment Subgroup Effect
+Version: 1.0.0
+Author: Masayuki Sawada
+Maintainer: Masayuki Sawada <masayuki.sawada@yale.edu>
+Description: This package contains the estimation and inference tools of the post-treatment subgroup mean and quantile effects for randomized experiments proposed and developed by Sawada (2018)
+    The leading parameter is the Intention-To-Treatment (ITT) effects conditional on endogenous treatment take-up decision, which have analog interpretations as the ATT/LATE and the direct effect of the treatment assignment.
+    This procedure estimates the mean effects and the quantile differences within the subgroup where the bootstrap inference offers the uniformly valid confidence sets. This procedure is also robust to the cluster dependency.
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+Imports: Rcpp (>= 0.12.19), readstata13
+LinkingTo: Rcpp
+RoxygenNote: 6.1.0

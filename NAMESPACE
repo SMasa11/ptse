@@ -1,0 +1,7 @@
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp,evalCpp)
+importFrom("stats", "approx", "binomial", "glm", "na.omit", "pnorm",
+           "predict", "qnorm", "quantile", "sd", "terms", "var",
+           "weighted.mean","formula")
+importFrom("utils", "str")
+useDynLib(ptse, .registration = TRUE)
