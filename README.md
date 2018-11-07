@@ -37,4 +37,3 @@ This procedure returns the list of CIs, while mean estimates, tables for CIs and
  Yb: the proxy variable, the proxy variable must be named as "Yb" in your data.frame
  cluster: a variable speficied as the argument cluster, e.g., "cluster"
   If clusterInference = FALSE, then cluster argument must be "" 
-```
