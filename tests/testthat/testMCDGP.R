@@ -196,6 +196,42 @@ runEstimateCI <- function(rpt)
   return(vectorCIs)
 }
 
+
+runCombined <- function()
+{
+  # Set Seed
+  set.seed(23762, kind = NULL, normal.kind = NULL)
+
+  plotBeg <- 0.2
+  plotEnd <- 0.8
+  plotBy  <- 0.05
+  alpha <- 0.05
+  perc <- seq(plotBeg,plotEnd,by=plotBy)
+
+  RCpp <- TRUE
+  nGridsFine <- 1000
+  nGrids <- 30
+
+  options(warn=0)
+
+  additiveT <- "" #"additive"
+  additiveSplineT <- FALSE
+  numKnots <- 2
+  numOrder <- 1
+  nBoot <- 3 #301
+
+  link <- "logit"
+  Ytype <- "Yb"
+  typeSieve <- "spline"
+  discY <- FALSE
+
+  main <- generateMonteCarloDGP(nc = 25)
+  main <- na.omit(main)
+  fml <- "Y ~ WC1 + WC2 | WD1 "
+  vectorCIs <- ptsEst(df=main,dDim=2,treatment="T",posttreat="X",nBoot=nBoot,Ytype=Ytype,clusterInference=TRUE,cluster="cluster",numKnots = numKnots,formula=fml,numOrder=numOrder,showDisplayMean = FALSE,saveFile = FALSE)
+  return(vectorCIs)
+}
+
 runCoverage <- function()
 {
   # Set Seed

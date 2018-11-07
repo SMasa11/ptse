@@ -1,7 +1,7 @@
 Package: ptse
 Type: Package
 Title: Post-Treatment Subgroup Effect
-Version: 1.0.0
+Version: 0.1.0
 Author: Masayuki Sawada
 Maintainer: Masayuki Sawada <masayuki.sawada@yale.edu>
 Description: This package contains the estimation and inference tools of the post-treatment subgroup mean and quantile effects for randomized experiments proposed and developed by Sawada (2018)

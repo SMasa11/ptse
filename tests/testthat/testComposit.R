@@ -31,6 +31,10 @@ test_that("Monte Carlo DGP ", {
   expect_warning(estCIs <- runEstimateCI(rpt=reporting))
   expect_true(all.equal(estCIs,CIs))
 
+  expect_warning(estCIs <- runCombined())
+  expect_true(all.equal(estCIs,CIs))
+
+
   expect_warning(reporting <- runEstimateReportingNoCont())
   means <- c(0.28412370074526, 0.456096656773537, 0.376035513199443, 0.368787309866873)
   quantiles <- c(0.133133805502293, 0.183508758935592, 0.237481923328414, 0.237481923328415,

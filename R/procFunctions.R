@@ -1,3 +1,47 @@
+#' Main Caller for estimating means and bootstrap CIs
+#'
+#' This function calls meanEstimates() and bootstrapProc() inside.
+#'
+#' @param df a data.frame, the exact dataset used for the study.
+#' @param dDim an integer, positive, the number of values D would take
+#' @param treatment a string, variable name for the treatment variable.
+#' @param posttreat a string, variable name for the post-treatment variable.
+#' @param typeSieve a string, either "formula" or "spline". Default is "spline" taking B-spline for the continuous variables specified in formula
+#' @param formula a formula object, for "spline", specify as "outcome ~ continuous | discrete". For "polynomial", use as in other packages like "lm". See the examples for detailed uses.
+#' @param numOrder (for typeSieve = "spline") an integer, positive, the maximum order of the spline polynomial
+#' @param numKnots (for typeSieve = "spline") an integer, positive, the number of knots for the spline
+#' @param dumAllAdditive (for typeSieve = "spline") a boolean, if TRUE, then the dummies are additively included. Default is FALSE and splines are allowed different across discrete variables term.
+#' @param additiveSpline (for typeSieve = "spline") a boolean, if TRUE, then the splines are additively combined. Default is FALSE and uses the kronecker product of uni-dimensional splines.
+#' @param nGrids an integer, positive, a number of grids for the outcome in the estimation for the conditional cdfs. Default is set to 30. This number crucially affects the computation time as it requires this many of glm estimations separately.
+#' @param nGridsFine an integer, positive, a number of grids used for the numerical integration. Default is set to 1000.
+#' @param plotBeg a float, a value in (0,1), the lower range of the quantile difference estimate.
+#' @param plotEnd a float, a value in (0,1), the upper range of the quantile difference estimate.
+#' @param plotBy a float, a positive value, the increment for the quantile difference esimate.
+#' @param link a string, a link function used as a binomial family link for glm. Refer to the specification of the link options for the R package glm. Defalt is "logit"
+#' @param optMute a boolean, option to toggle off the outputs used during the development. Default is TRUE.
+#' @param Ytype a string, either "Yb" or "Y1". Default is "Yb" which uses a proxy variable for Y0. Specification with "Y1" uses Y1 as a proxy for Y0.
+#' @param discY a boolean, option to toggle on an experimental feature for the partial identification with discrete proxy variable. Default is FALSE, which assumes absolutely continuous Yb.
+#' @param showDisplayMean, a boolean, if TRUE, then it shows a table of CIs intermediary before the whole bootstrap ends. Default is TRUE.
+#' @param saveFile, a boolean, if TRUE, it returns the eps files of plots. Default is TRUE.
+#' @param clusterInference, a boolean, if TRUE then cluster resampling is used instead of individual resampling
+#' @param cluster a string, variable name representing the cluster. Default is "".
+#' @param nBoot an integer, positive, a number of bootstrap iterations for the confidence interval construction, plus the true mean estimate. Default is 301.
+#' @param alpha a float, a value in (0,1), the size of the test. The default is 0.05.
+
+ptsEst <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formula,numOrder,numKnots,dumAllAdditive = FALSE,additiveSpline = FALSE,nGrids = 30,nGridsFine = 1000,
+                   plotBeg = 0.25,plotEnd = 0.75,plotBy=0.05,link="logit",optMute = TRUE,Ytype="Yb",discY=FALSE,showDisplayMean = TRUE,saveFile = TRUE,clusterInference,cluster = "",nBoot=301,alpha=0.05)
+{
+  report <- meanEstimate(df=df,dDim=dDim,treatment=treatment,posttreat=posttreat,typeSieve=typeSieve,formula=formula,numOrder=numOrder,numKnots=numKnots,dumAllAdditive=dumAllAdditive,
+                         additiveSpline = additiveSpline,nGrids = nGrids,nGridsFine = nGridsFine,
+               plotBeg = plotBeg,plotEnd = plotEnd,plotBy=plotBy,link=link,optMute = optMute,Ytype=Ytype,discY=discY)
+  CIs <- bootstrapProc(df=df,dDim=dDim,meanReporting=report,treatment=treatment,posttreat=posttreat,typeSieve = typeSieve,formula=formula,
+                        numOrder=numOrder,numKnots=numKnots,dumAllAdditive=dumAllAdditive,additiveSpline=additiveSpline,nGrids = nGrids,nGridsFine = nGridsFine,
+                            plotBeg = plotBeg,plotEnd = plotEnd,plotBy=plotBy,link=link,optMute =optMute,clusterInference=clusterInference,cluster =cluster,
+                            nBoot=nBoot,alpha=alpha,Ytype=Ytype,discY=discY,showDisplayMean =showDisplayMean,saveFile = saveFile)
+  return(CIs)
+}
+
+
 #' Estimation of mean effects and quantile differences
 #'
 #' This function returns the mean estimates of the average effects and the quantile effects.
@@ -160,9 +204,9 @@ meanEstimate <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formul
 #' @param formula a formula object, for "spline", specify as "outcome ~ continuous | discrete". For "polynomial", use as in other packages like "lm". See the examples for detailed uses.
 #' @param numOrder (for typeSieve = "spline") an integer, positive, the maximum order of the spline polynomial. It must be the same as previously used for meanEstimate.
 #' @param numKnots (for typeSieve = "spline") an integer, positive, the number of knots for the spline. It must be the same as previously used for meanEstimate.
-#' @param nBoot an integer, positive, a number of bootstrap iterations for the confidence interval construction, plus the true mean estimate. Default is 301.
 #' @param clusterInference, a boolean, if TRUE then cluster resampling is used instead of individual resampling
 #' @param cluster a string, variable name representing the cluster. Default is "".
+#' @param nBoot an integer, positive, a number of bootstrap iterations for the confidence interval construction, plus the true mean estimate. Default is 301.
 #' @param alpha a float, a value in (0,1), the size of the test. The default is 0.05.
 #' @param dumAllAdditive (for typeSieve = "spline") a boolean, if TRUE, then the dummies are additively included. Default is FALSE and splines are allowed different across discrete variables term.
 #' @param additiveSpline (for typeSieve = "spline") a boolean, if TRUE, then the splines are additively combined. Default is FALSE and uses the kronecker product of uni-dimensional splines.
