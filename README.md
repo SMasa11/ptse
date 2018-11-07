@@ -11,9 +11,13 @@ The function `ptsEst()` returns both
 
 ### Example
 ```
-CIs <- ptsEst(df=main,dDim=2,treatment="treatment",posttreat="client",clusterInference=TRUE,cluster="cluster",numKnots=1,numOrder=1,formula=formula,Ytype="Yb")
+CIs <- ptsEst(df=main,dDim=2,treatment="treatment",posttreat="client",
+clusterInference=TRUE,cluster="cluster",numKnots=1,numOrder=1,formula=formula,Ytype="Yb")
 ```
 This procedure returns the list of CIs, while mean estimates, tables for CIs and quantile plots will be produced during the procedures.
+
+#### dDim: the number of the subgroups
+For example, dDim = 2 is the case where the subgroup is defined by a binary "posttreat" variable.
 
 #### formula: formula object which should have the form
  outcome ~ continuousVariables | discreteVariables
