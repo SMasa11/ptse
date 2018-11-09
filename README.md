@@ -1,5 +1,6 @@
 # ptse
 R package for Post-Treatment Subgroup Effect analysis, Sawada (2018)
+
  For the analysis, refer the paper "Identification and inference of post-treatment subgroup effects." on my website: https://sites.google.com/view/masayukisawada/research
 
 ## Instal
