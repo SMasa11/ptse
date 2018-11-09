@@ -34,9 +34,13 @@ For example, dDim = 2 is the case where the subgroup is defined by a binary "pos
  ``` Y ~ cont1 + cont2 + cont3 | disc1 + disc2 ```
  
  If there is no continuous variable, or discrete variable, replace it with "0"
- ``` Y ~ cont1 + cont2 | 0 ```
- 
- ``` Y ~ 0 | disc1 + disc2 ```
+ ``` 
+     # when there is no discrete covariates
+     Y ~ cont1 + cont2 | 0
+     
+     # when there is no continuous covariates
+     Y ~ 0 | disc1 + disc2
+ ```
 
 #### numKnots and numOrder specify the number of knots and the order of the spline basis
  Spline basis will be generated for continuousVariables only
