@@ -26,7 +26,7 @@ For example, dDim = 2 is the case where the subgroup is defined by a binary "pos
 #### formula: formula object which should have the form
  formula must take the following format
 
- ```outcome ~ continuousVariables | discreteVariables```
+ ```Y ~ continuousVariables | discreteVariables```
  
  where continuousVariables and discreteVariables may be multiple variables combined with "+"
  
@@ -54,7 +54,7 @@ For example, dDim = 2 is the case where the subgroup is defined by a binary "pos
  
  posttreat: a variable specified as the argument posttreat, e.g., "client" (D in the paper)
  
- outcome: a variable specified as the left-hand side of the "formula", e.g. "output" (Y in the paper)
+ outcome: a variable specified as the left-hand side of the "formula", e.g. "Y" (Y in the paper)
  
  Yb: the proxy variable, the proxy variable must be named as "Yb" in your data.frame
  
