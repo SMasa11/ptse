@@ -537,7 +537,7 @@ bootstrapProc <- function(df,dDim,meanReporting,treatment,posttreat,typeSieve = 
     {
       message("Expected time ", floor(timeRound*unlist(optset["nBoot"])/60), " mins ", round(timeRound*unlist(optset["nBoot"]) - floor(timeRound*unlist(optset["nBoot"])/60)*60), " secs")
     }
-    if ((i %% 50 == 0) | (i == 10))
+    if ((i %% 30 == 0) | (i == 10))
     {
       message(i," th boot out of ", unlist(optset["nBoot"]))
       if (i == 10)
@@ -548,7 +548,7 @@ bootstrapProc <- function(df,dDim,meanReporting,treatment,posttreat,typeSieve = 
       }
       message("Expected remaining time ", floor(timeAvg*(unlist(optset["nBoot"]) - i)/60), " mins ", round(timeAvg*(unlist(optset["nBoot"]) - i) - floor(timeAvg*(unlist(optset["nBoot"]) - i)/60)*60), " secs")
       timeAcc <- 0
-      if ((i %% 30 == 0) & (i < unlist(optset["nBoot"])-1))
+      if (1 == 1) #((i %% 30 == 0) & (i < unlist(optset["nBoot"])-1))
       {
         if (showDisplayMean)
         {
@@ -902,6 +902,11 @@ chkFit <- function(df,sg,FYCFs,itrY,opt,title)
   {
     print(genPlot2way(itr=itrI,F1=FYPred,F2=FYE,label1="smoothed",label2="ecdf",title=title))
   }
+
+  estMeans <- integrate1(itr = itrI,FY = FYPred,opt = opt)
+  trueMeans <- weighted.mean(dfSub$Y)
+  #message("estmeans ", estMeans," trueMeans ",trueMeans," diff ",estMeans - trueMeans," ratio ",(estMeans - trueMeans)/trueMeans," \n")
+
   return(FYPred)
 }
 
@@ -1074,17 +1079,21 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
     # for factual Y, we must refer to Yorig
   }
 
+  upperTail = quantile(main$Y,p=0.995);
+
   ## getting grids
   # genearate knots
   if (optset["discY"] == FALSE)
   {
-    itrY <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGrids"]))
-    itrI <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGridsFine"]))
+    itrY <- seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGrids"]))
+    itrI <- seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGridsFine"]))
   } else {
     #itrY <- c(0,gridsGen(min = min(main$Y[main$Y > 0]), max = max(main$Y), nG=unlist(optset["nGrids"])))
     #itrI <- c(0,gridsGen(min = min(main$Y[main$Y > 0]), max = max(main$Y), nG=unlist(optset["nGridsFine"])))
-    itrY <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGrids"]))
-    itrI <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGridsFine"]))
+    itrY <- c(seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGrids"])-1), max(main$Y))
+    itrI <- c(seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGridsFine"])-1),max(main$Y))
+    #itrY <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGrids"]))
+    #itrI <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGridsFine"]))
   }
   itrU <- seq(from = 0, to = 1, length=unlist(optset["nGridsFine"]))
 
@@ -1205,7 +1214,8 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
         {
           reportingQ <- (QY1XPred - QY0XCFM)
           reportingV <- c(meanE1 - meanC0)
-          ATEPred <- (meanE1 - meanC0)*nX/n1
+          #ATEPred <- (meanE1 - meanC0)*nX/n1
+          BiasPred <- (meanE1 - meanC0)/(1 - nX/n1)*(nX/n1)
         } else {
           reportingQUB <- (QY1XPred - QY0XCFMUB)
           reportingVUB <- c(meanE1 - meanC0UB)
@@ -1235,7 +1245,7 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
         {
           reportingQ <- c(reportingQ,QY1XPred - QY0XCFM)
           reportingV <- c(reportingV,meanE1 - meanC0)
-          ATEPred <- ATEPred + (meanE1 - meanC0)*nX/n1
+          #ATEPred <- ATEPred + (meanE1 - meanC0)*nX/n1
         } else {
           reportingQUB <- c(reportingQUB,QY1XPred - QY0XCFMUB)
           reportingVUB <- c(reportingVUB,meanE1 - meanC0UB)
@@ -1254,7 +1264,8 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
 
   if (optset["discY"] == FALSE)
   {
-    reportingV <- c(reportingV,mean1 - mean0,ATEPred)
+    #reportingV <- c(reportingV,mean1 - mean0,ATEPred)
+    reportingV <- c(reportingV,mean1 - mean0,BiasPred)
     reporting <- list("reportingV"=reportingV,"reportingQ"=reportingQ)
   } else {
     reportingVUB <- c(reportingVUB,mean1 - mean0,ATEPredUB)
@@ -1378,7 +1389,7 @@ displayMeans <- function(repV,optset,n,repVLB=NA,curB,showDisplayMean=TRUE)
       }
       if (i == unlist(optset["dDim"]) + 2)
       {
-        strName <- "ATEPred \t"
+        strName <- "Bias \t"
       }
       cat("sd based \n")
       cat(sprintf("%6s \t %6.4f \t %6.4f \t (%6.4f \t %6.4f) \t (%6.4f  \t %6.4f) \n",strName,repV[i,1],sd(repV[i,2:curB] - repV[i,1],na.rm=TRUE),
@@ -1388,7 +1399,22 @@ displayMeans <- function(repV,optset,n,repVLB=NA,curB,showDisplayMean=TRUE)
                   repV[i,1] + sd(repV[i,2:curB] - repV[i,1],na.rm=TRUE)*1.645))
     }
   }
-  # for (i in 1:lenVector)
+
+  # #' (internal) Evaluate mean from the estimated CDF to see its estimation quality
+  # #'
+  # #' @param estDR vector of cdf values
+  # #' @param grids vector of grid points
+  # #' @param targetMean mean value
+  # #'
+  # #' @return None.
+  # #'
+  # checkDRQuality <- function(estDR,grids,targetMean)
+  # {
+  #   integrate1()
+  # }
+  #
+
+    # for (i in 1:lenVector)
   # {
   #   if (i <= unlist(optset["dDim"]))
   #   {

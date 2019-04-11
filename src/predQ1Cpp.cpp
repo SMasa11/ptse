@@ -23,6 +23,7 @@ NumericVector predQ1Cpp(NumericMatrix &FY1Wpred,NumericMatrix &FY0Wpred,NumericV
   {
     DataFrame dfFY1WpredInt = appxQ1(itrY,FY1Wpred(i,_),itrI);
     FY1WpredInt = dfFY1WpredInt["y"];
+    //reordering
     FY1WpredInt.sort();
     DataFrame dfFY0WpredInt = appxQ1(itrY,FY0Wpred(i,_),itrI);
     FY0WpredInt = dfFY0WpredInt["y"];
