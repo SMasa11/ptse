@@ -29,15 +29,15 @@
 #' @param alpha a float, a value in (0,1), the size of the test. The default is 0.05.
 
 ptsEst <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formula,numOrder,numKnots,dumAllAdditive = FALSE,additiveSpline = FALSE,nGrids = 30,nGridsFine = 1000,
-                   plotBeg = 0.25,plotEnd = 0.75,plotBy=0.05,link="logit",optMute = TRUE,Ytype="Yb",discY=FALSE,showDisplayMean = TRUE,saveFile = TRUE,clusterInference,cluster = "",nBoot=301,alpha=0.05)
+                   plotBeg = 0.25,plotEnd = 0.75,plotBy=0.05,link="logit",optMute = TRUE,Ytype="Yb",discY=FALSE,showDisplayMean = TRUE,saveFile = TRUE,clusterInference,cluster = "",nBoot=301,alpha=0.05,trimQuant=trimQuant)
 {
   report <- meanEstimate(df=df,dDim=dDim,treatment=treatment,posttreat=posttreat,typeSieve=typeSieve,formula=formula,numOrder=numOrder,numKnots=numKnots,dumAllAdditive=dumAllAdditive,
                          additiveSpline = additiveSpline,nGrids = nGrids,nGridsFine = nGridsFine,
-               plotBeg = plotBeg,plotEnd = plotEnd,plotBy=plotBy,link=link,optMute = optMute,Ytype=Ytype,discY=discY)
+               plotBeg = plotBeg,plotEnd = plotEnd,plotBy=plotBy,link=link,optMute = optMute,Ytype=Ytype,discY=discY,trimQuant=trimQuant)
   CIs <- bootstrapProc(df=df,dDim=dDim,meanReporting=report,treatment=treatment,posttreat=posttreat,typeSieve = typeSieve,formula=formula,
                         numOrder=numOrder,numKnots=numKnots,dumAllAdditive=dumAllAdditive,additiveSpline=additiveSpline,nGrids = nGrids,nGridsFine = nGridsFine,
                             plotBeg = plotBeg,plotEnd = plotEnd,plotBy=plotBy,link=link,optMute =optMute,clusterInference=clusterInference,cluster =cluster,
-                            nBoot=nBoot,alpha=alpha,Ytype=Ytype,discY=discY,showDisplayMean =showDisplayMean,saveFile = saveFile)
+                            nBoot=nBoot,alpha=alpha,Ytype=Ytype,discY=discY,showDisplayMean =showDisplayMean,saveFile = saveFile,trimQuant=trimQuant)
   return(CIs)
 }
 
@@ -81,7 +81,7 @@ ptsEst <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formula,numO
 #' # regard the formula give as the exact polynomial expression to be used for the estimations.
 #'
 meanEstimate <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formula,numOrder,numKnots,dumAllAdditive = FALSE,additiveSpline = FALSE,nGrids = 30,nGridsFine = 1000,
-                         plotBeg = 0.25,plotEnd = 0.75,plotBy=0.05,link="logit",optMute = TRUE,Ytype="Yb",discY=FALSE)
+                         plotBeg = 0.25,plotEnd = 0.75,plotBy=0.05,link="logit",optMute = TRUE,Ytype="Yb",discY=FALSE,flag = FALSE,trimQuant=trimQuant)
 {
   isInteger <- function(int) if (is.numeric(int)) !(int - round(int)) else FALSE
 
@@ -187,7 +187,7 @@ meanEstimate <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formul
   optset["numCont"] <- length(attr(terms(fml,rhs=1),"term.labels"))
   optset["numDisc"] <- length(attr(terms(fml,rhs=2),"term.labels"))
   # mean estimates
-  reporting <- mainProcedure(main=df,optset=optset,fml=formula,Ytype=Ytype,link=link)
+  reporting <- mainProcedure(main=df,optset=optset,fml=formula,Ytype=Ytype,link=link,flag=flag,trimQuant=trimQuant)
   return(reporting)
 }
 
@@ -227,7 +227,7 @@ meanEstimate <- function(df,dDim,treatment,posttreat,typeSieve = "spline",formul
 
 bootstrapProc <- function(df,dDim,meanReporting,treatment,posttreat,typeSieve = "spline",formula,numOrder,numKnots,dumAllAdditive=FALSE,additiveSpline=FALSE,nGrids = 30,nGridsFine = 1000,
                           plotBeg = 0.25,plotEnd = 0.75,plotBy=0.05,link="logit",optMute = TRUE,clusterInference,cluster = "",
-                          nBoot=301,alpha=0.05,Ytype="Yb",discY=FALSE,showDisplayMean = TRUE,saveFile = TRUE)
+                          nBoot=301,alpha=0.05,Ytype="Yb",discY=FALSE,showDisplayMean = TRUE,saveFile = TRUE,trimQuant=trimQuant)
 {
   isInteger <- function(int) if (is.numeric(int)) !(int - round(int)) else FALSE
 
@@ -506,7 +506,7 @@ bootstrapProc <- function(df,dDim,meanReporting,treatment,posttreat,typeSieve = 
       mainBoot <- rbind(mainBoot,subMain0[sample(nrow(subMain0),size=sum(df$T==0),replace=TRUE),])
     }
     ## Using the mainBoot data.frame, return the mean estimates
-    reporting <- mainProcedure(main=mainBoot,optset=optset,fml=formula,Ytype=Ytype,link=link)
+    reporting <- mainProcedure(main=mainBoot,optset=optset,fml=formula,Ytype=Ytype,link=link,flag = 0,trimQuant=trimQuant)
 
     ## column bind the ith boot for mean effects to repV
     if (optset["discY"] == FALSE)
@@ -782,7 +782,7 @@ retFormula <- function(opt)
 #'
 #' @return FCFs, a list of glm results for every grids for Y to be evaluated.
 #'
-genDR <- function(df,sg,itr,opt,fml,link)
+genDR <- function(df,sg,itr,opt,fml,link,trimQuant)
 {
   # list of counterfactual distribution for aech knot
   FCFs <- list()
@@ -797,6 +797,14 @@ genDR <- function(df,sg,itr,opt,fml,link)
   df$subg <- eval(parse(text=sg))
 
   # create subgroup dataframe
+  dfSub <- df[df$subg==1,]
+  dfSub <- na.omit(dfSub)
+
+  #message(sum(df$subg))
+  # trimming the extreme values
+  df$subg <- df$subg*(dfSub$Y <= quantile(abs(dfSub$Y),p=trimQuant))
+  df$subg <- df$subg*(dfSub$Y >= -quantile(abs(dfSub$Y),p=trimQuant))
+  #message(sum(df$subg))
   dfSub <- df[df$subg==1,]
   dfSub <- na.omit(dfSub)
 
@@ -857,7 +865,7 @@ genPlot2way <- function(itr,F1,F2,label1,label2,title)
 #'
 #' @return FYPred which is the prediction of FY for each observation.
 #'
-chkFit <- function(df,sg,FYCFs,itrY,opt,title)
+chkFit <- function(df,sg,FYCFs,itrY,opt,title,flag)
 {
   # evaluate string expression of subgroup to pick
   df$subg <- eval(parse(text=sg))
@@ -896,7 +904,7 @@ chkFit <- function(df,sg,FYCFs,itrY,opt,title)
   }
 
   # Rearrangement
-  # FYPred <- sort(FYPred)
+  #FYPred <- sort(FYPred)
   # plot of smoothed averaged out cdf against ecdf
   if (opt["optMute"] == FALSE)
   {
@@ -905,7 +913,12 @@ chkFit <- function(df,sg,FYCFs,itrY,opt,title)
 
   estMeans <- integrate1(itr = itrI,FY = FYPred,opt = opt)
   trueMeans <- weighted.mean(dfSub$Y)
-  #message("estmeans ", estMeans," trueMeans ",trueMeans," diff ",estMeans - trueMeans," ratio ",(estMeans - trueMeans)/trueMeans," \n")
+  seTrueMeans <- sqrt(var(dfSub$Y)/length(dfSub$Y))
+  if (flag == TRUE)
+  {
+    message("estmeans ", estMeans," trueMeans ",trueMeans," diff ",estMeans - trueMeans," se true mean ",seTrueMeans," \n")
+  }
+
 
   return(FYPred)
 }
@@ -1062,7 +1075,7 @@ getQuantile <- function(FY,kI,kU)
 #'
 #' @return reporting of the list of mean estimates, $reportingV and $reportingQ
 
-mainProcedure <- function(main,optset,fml,Ytype,link)
+mainProcedure <- function(main,optset,fml,Ytype,link,flagInit,trimQuant=trimQuant)
 {
   if (Ytype != "Y1")
   {
@@ -1080,18 +1093,19 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
   }
 
   upperTail = quantile(main$Y,p=0.995);
+  lowerTail = quantile(main$Y,p=0.005);
 
   ## getting grids
   # genearate knots
   if (optset["discY"] == FALSE)
   {
-    itrY <- seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGrids"]))
-    itrI <- seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGridsFine"]))
+    itrY <- seq(from = lowerTail, to = upperTail, length=unlist(optset["nGrids"]))
+    itrI <- seq(from = lowerTail, to = upperTail, length=unlist(optset["nGridsFine"]))
   } else {
     #itrY <- c(0,gridsGen(min = min(main$Y[main$Y > 0]), max = max(main$Y), nG=unlist(optset["nGrids"])))
     #itrI <- c(0,gridsGen(min = min(main$Y[main$Y > 0]), max = max(main$Y), nG=unlist(optset["nGridsFine"])))
-    itrY <- c(seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGrids"])-1), max(main$Y))
-    itrI <- c(seq(from = min(main$Y), to = upperTail, length=unlist(optset["nGridsFine"])-1),max(main$Y))
+    itrY <- c(seq(from = lowerTail, to = upperTail, length=unlist(optset["nGrids"])-1), max(main$Y))
+    itrI <- c(seq(from = lowerTail, to = upperTail, length=unlist(optset["nGridsFine"])-1),max(main$Y))
     #itrY <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGrids"]))
     #itrI <- seq(from = min(main$Y), to = max(main$Y), length=unlist(optset["nGridsFine"]))
   }
@@ -1107,12 +1121,12 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
   optset0 <- optset
   #optset0["numKnots"] <- 2
   #optset0["numOrder"] <- 2
-  FY0CFs <-genDR(df=main,sg="(df$T==0)",itr=itrY,opt=optset0,fml=fml,link=link)
+  FY0CFs <-genDR(df=main,sg="(df$T==0)",itr=itrY,opt=optset0,fml=fml,link=link,trimQuant=trimQuant)
   # Dist Regression for Y1
-  FY1CFs <-genDR(df=main,sg="(df$T==1)",itr=itrY,opt=optset0,fml=fml,link=link)
+  FY1CFs <-genDR(df=main,sg="(df$T==1)",itr=itrY,opt=optset0,fml=fml,link=link,trimQuant=trimQuant)
   ## predictions based on estimated DRs
-  FY0Pred <- chkFit(df = main,sg = "(df$T==0)",FYCFs = FY0CFs,itrY = itrY,opt = optset0,title="Y0")
-  FY1Pred <- chkFit(df = main,sg = "(df$T==1)",FYCFs = FY1CFs,itrY = itrY,opt = optset0,title="Y1")
+  FY0Pred <- chkFit(df = main,sg = "(df$T==0)",FYCFs = FY0CFs,itrY = itrY,opt = optset0,title="Y0",flag = flagInit)
+  FY1Pred <- chkFit(df = main,sg = "(df$T==1)",FYCFs = FY1CFs,itrY = itrY,opt = optset0,title="Y1",flag = flagInit)
   ## ATE estimated
   if (optset["optMute"] == FALSE)
   {
@@ -1136,8 +1150,8 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
     sgExp <- paste(paste("(df$T==1)&(df$X == ",toString(i)),")")
     # Dist Regression for Y1X1
     optsetX <- optset
-    FY1XCFs <-genDR(df=main,sg=sgExp,itr=itrY,opt=optset,fml=fml,link=link)
-    FY1XPred <- chkFit(df = main,sg = sgExp,FYCFs = FY1XCFs,itrY = itrY,opt = optset,title="Y1X")
+    FY1XCFs <-genDR(df=main,sg=sgExp,itr=itrY,opt=optset,fml=fml,link=link,trimQuant=trimQuant)
+    FY1XPred <- chkFit(df = main,sg = sgExp,FYCFs = FY1XCFs,itrY = itrY,opt = optset,title="Y1X",flag = flagInit)
     # FY predicted
     FY0Wpred1 <- predFY(df=main,sg=sgExp,FYCFs=FY0CFs,itr=itrY,opt=optset,n=nX)
     if (FY0Wpred1 == "RankDef")
@@ -1176,8 +1190,8 @@ mainProcedure <- function(main,optset,fml,Ytype,link)
 
       if (Ytype != "Y1")
       {
-        FY1XCFsOrg <-genDR(df=mainOrg,sg=sgExp,itr=itrY,opt=optset,fml=fml,link=link)
-        FY1XPredOrg <- chkFit(df = mainOrg,sg = sgExp,FYCFs = FY1XCFsOrg,itrY = itrY,opt = optset,title="Y1X")
+        FY1XCFsOrg <-genDR(df=mainOrg,sg=sgExp,itr=itrY,opt=optset,fml=fml,link=link,trimQuant=trimQuant)
+        FY1XPredOrg <- chkFit(df = mainOrg,sg = sgExp,FYCFs = FY1XCFsOrg,itrY = itrY,opt = optset,title="Y1X",flag = flagInit)
       }
 
       if (optset["discY"] == FALSE)
@@ -1335,6 +1349,12 @@ plotQuantile <- function(lenQ,Qmat,optset,alpha,n,filename)
   # ggplot(plotDt,aes(x=x,y=y)) + geom_line(aes(color=factor(case)))
   print(ggplot(plotDt,aes(x=Quantile,y=TE)) + geom_line(aes(linetype=plots),color="#099191") + scale_linetype_manual(values=c("dotted","solid","dotted")) + theme(legend.position="top"))
   ggsave(filename,plot = last_plot())
+
+  plotBase <- seq(unlist(optset["plotBeg"]),unlist(optset["plotEnd"]),by=unlist(optset["plotBy"]))
+  for (i in 1:length(CI[1,]))
+  {
+    cat(plotBase[i],CI[1,i],CI[2,i],CI[3,i],"\n")
+  }
 }
 
 #' (internal) Displaying the mean estimation tables with CIs
